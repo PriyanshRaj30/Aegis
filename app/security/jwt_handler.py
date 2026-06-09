@@ -1,10 +1,10 @@
 from jose import jwt
 from datetime import datetime
 from datetime import timedelta
+from app.config import settings
 
-SECRET_KEY = "super-secret"
-
-ALGORITHM = "HS256"
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
 
 
 def create_access_token(data):
@@ -30,16 +30,3 @@ def decode_access_token(token):
         SECRET_KEY,
         algorithms=[ALGORITHM]
     )
-# i.e.
-# {
-#   "user_id": 1,
-#   "role": "ADMIN",
-#   "exp": 123456789
-# }
-
-
-save_user(
-    email,
-    hashed,
-    role
-)
