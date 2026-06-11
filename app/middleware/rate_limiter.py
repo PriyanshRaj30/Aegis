@@ -12,12 +12,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         identifier = request.client.host
 
         # 2. Check the rate limit
-        allowed = check_rate_limit(
-            user_id=identifier,
-            api_key_id="",
-            action="generic"
-        )
-
+        try:
+            allowed = check_rate_limit(
+                user_id=identifier,
+                api_key_id="",
+                action="generic"
+            )
+        except Exception:
+            allowed = True  # Redis down → fail open, don't block users
+            
         # 3. Block if over limit
         if not allowed:
             return JSONResponse(

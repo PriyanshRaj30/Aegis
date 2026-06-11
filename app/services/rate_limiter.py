@@ -1,5 +1,7 @@
 from time import time
 import uuid
+from app.config import settings
+from app.redis.connection import redis_client
 
 def check_rate_limit(user_id, api_key_id, action):
     key = f"rate_limit:{user_id}:{api_key_id}:{action}"
@@ -12,7 +14,7 @@ def check_rate_limit(user_id, api_key_id, action):
 
     window_start = current_time_ms - window_ms
 
-    redis_client.zremrangebyscore(key, 0, window_start)
+    redis_client.zremrangebyscore(key, "-inf", window_start)
 
     request_count = redis_client.zcard(key)
 

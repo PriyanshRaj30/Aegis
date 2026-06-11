@@ -9,7 +9,8 @@ class Settings(BaseSettings):
     ALGORITHM: str
     DATABASE_URL: str
 
-    REDIS_URL: str
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
 
     RATE_LIMIT_REQUESTS: int
     RATE_LIMIT_WINDOW_SECONDS: int
