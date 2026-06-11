@@ -9,6 +9,11 @@ class Settings(BaseSettings):
     ALGORITHM: str
     DATABASE_URL: str
 
+    REDIS_URL: str
+
+    RATE_LIMIT_REQUESTS: int
+    RATE_LIMIT_WINDOW_SECONDS: int
+
     class Config:
         env_file = str(ENV_FILE)
 

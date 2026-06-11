@@ -18,6 +18,10 @@ from app.models.api_key import ApiKey
 from app.routes.api_keys import router as api_keys_router
 
 
+from app.middleware.rate_limiter import RateLimitMiddleware
+app.add_middleware(RateLimitMiddleware)
+
+
 app = FastAPI(title="Aegis API Gateway")
 
 Base.metadata.create_all(bind=engine)
