@@ -8,8 +8,11 @@ from app.config import settings
 from app.services.risk_engine import (
     is_banned,
     add_risk_points,
-    evaluate_risk
+    evaluate_risk,
+    get_risk_score
 )
+from app.database.connection import SessionLocal
+from app.services.audit_service import create_log
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
 
@@ -57,10 +60,29 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 }
             )
 
-        # 3. Let the request through
+        # Let the request through
         response = await call_next(request)
 
-        # 4. Post-response risk scoring
+
+        # Audit log — write to DB
+        try:
+            db = SessionLocal()
+            try:
+                create_log(
+                    db=db,
+                    ip=identifier,
+                    method=request.method,
+                    path=request.url.path,
+                    status_code=response.status_code,
+                    risk_score=get_risk_score(identifier),
+                    rate_limited=(response.status_code == 429)
+                )
+            finally:
+                db.close()
+        except Exception:
+            pass  # never let logging crash a request
+
+        # Post-response risk scoring
         try:
             if response.status_code == 404:
                 add_risk_points(identifier, 5)

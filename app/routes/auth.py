@@ -1,16 +1,12 @@
-# POST /auth/register — accepts UserRegister, calls auth_service.register_user(), returns TokenResponse
-# POST /auth/login — accepts UserLogin, calls auth_service.login_user(), returns TokenResponse
-
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from fastapi import HTTPException
 
 from app.schemas.user import (
     UserRegister,
     UserLogin,
     TokenResponse
 )
-
 
 from app.services.auth_service import (
     register_user,
@@ -26,10 +22,12 @@ router = APIRouter(
 
 
 @router.post("/register", response_model=TokenResponse)
-def register(user_register: UserRegister,
-db: Session = Depends(get_db)):
+def register(
+    user_register: UserRegister,
+    db: Session = Depends(get_db)
+):
     """
-    Register a new user (employee or admin)
+    Register a new user. Send JSON: {"email": "...", "password": "...", "role": "ADMIN"}
     """
     try:
         result = register_user(
@@ -38,30 +36,32 @@ db: Session = Depends(get_db)):
             user_register.password,
             user_register.role
         )
-        
         return result
     except Exception as e:
         raise HTTPException(
             status_code=400,
-            detail="Email already registered"
+            detail=str(e)   # shows real error so you can debug
         )
 
+
 @router.post("/login", response_model=TokenResponse)
-def login(user_login: UserLogin,
-db: Session = Depends(get_db)):
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
     """
-    Login an existing user
+    Login — use Swagger UI 'Authorize' button.
+    Enter your email in the 'username' field (OAuth2 standard naming).
     """
     try:
         result = login_user(
-            db, 
-            user_login.email,
-            user_login.password
+            db,
+            form_data.username,  # Swagger sends email as 'username'
+            form_data.password
         )
-        
         return result
     except Exception as e:
         raise HTTPException(
-            status_code=400,
-            detail="Invalid credentials"
+            status_code=401,
+            detail=str(e)
         )
