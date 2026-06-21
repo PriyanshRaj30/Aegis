@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     RATE_LIMIT_REQUESTS: int
     RATE_LIMIT_WINDOW_SECONDS: int
 
+    TOKEN_BUCKET_CAPACITY: int
+    TOKEN_BUCKET_REFILL_RATE: float
+
     class Config:
         env_file = str(ENV_FILE)
 
