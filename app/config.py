@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     TOKEN_BUCKET_CAPACITY: int
     TOKEN_BUCKET_REFILL_RATE: float
 
+    COOLDOWN_DURATION_SECONDS: int
     class Config:
         env_file = str(ENV_FILE)
 
