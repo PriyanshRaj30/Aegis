@@ -7,50 +7,52 @@ from app.config import settings
 
 from app.services.risk_engine import (
     is_banned,
+    is_key_banned,
     add_risk_points,
     evaluate_risk,
-    get_risk_score
+    get_risk_score,
 )
 from app.database.connection import SessionLocal
 from app.services.audit_service import create_log
+
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
 
-        # Identify the caller — use IP address for now
-        identifier = request.client.host
+        # --- Identify both dimensions of the caller ---
+        ip = request.client.host
+        api_key_id = request.headers.get("X-API-Key", "") or ""
 
-        # Already banned?
-        if is_banned(identifier):
+        # --- Ban check: IP and API key are checked independently ---
+        if is_banned(ip):
             return JSONResponse(
                 status_code=403,
-                content={
-                    "detail": "IP temporarily banned"
-                }
+                content={"detail": "IP temporarily banned"}
+            )
+        if api_key_id and is_key_banned(api_key_id):
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "API key temporarily banned"}
             )
 
+        # --- Rate limit check (sliding window, per-IP + per-key) ---
         try:
             allowed = check_rate_limit(
-                user_id=identifier,
-                api_key_id="",
+                user_id=ip,
+                api_key_id=api_key_id,   # was always "" before — now real key
                 action="generic"
             )
         except Exception:
             allowed = True
 
-
-        # Rate limit exceeded
+        # --- Rate limit exceeded: score both dimensions atomically ---
         if not allowed:
+            add_risk_points(f"ip:{ip}", settings.WEIGHT_RATE_LIMIT_SLIDING)
+            if api_key_id:
+                add_risk_points(f"key:{api_key_id}", settings.WEIGHT_RATE_LIMIT_SLIDING)
 
-            add_risk_points(
-                identifier,
-                20
-            )
-
-            risk_status = evaluate_risk(
-                identifier
-            )
+            risk_status = evaluate_risk(ip=ip, api_key_id=api_key_id or None)
 
             return JSONResponse(
                 status_code=429,
@@ -60,21 +62,20 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 }
             )
 
-        # Let the request through
+        # --- Let the request through ---
         response = await call_next(request)
 
-
-        # Audit log — write to DB
+        # --- Audit log — write to DB ---
         try:
             db = SessionLocal()
             try:
                 create_log(
                     db=db,
-                    ip=identifier,
+                    ip=ip,
                     method=request.method,
                     path=request.url.path,
                     status_code=response.status_code,
-                    risk_score=get_risk_score(identifier),
+                    risk_score=get_risk_score(f"ip:{ip}"),
                     rate_limited=(response.status_code == 429)
                 )
             finally:
@@ -82,14 +83,22 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         except Exception:
             pass  # never let logging crash a request
 
-        # Post-response risk scoring
+        # --- Post-response risk scoring: both IP and API key dimensions ---
         try:
+            points = 0.0
             if response.status_code == 404:
-                add_risk_points(identifier, 5)
+                points = settings.WEIGHT_STATUS_404
             elif response.status_code == 401:
-                add_risk_points(identifier, 10)
+                points = settings.WEIGHT_STATUS_401
+            elif response.status_code == 403:
+                points = settings.WEIGHT_STATUS_403
 
-            evaluate_risk(identifier)
+            if points:
+                add_risk_points(f"ip:{ip}", points)
+                if api_key_id:
+                    add_risk_points(f"key:{api_key_id}", points)
+
+            evaluate_risk(ip=ip, api_key_id=api_key_id or None)
         except Exception:
             pass  # Redis down → skip scoring, don't crash
 

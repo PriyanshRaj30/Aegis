@@ -1,8 +1,8 @@
-alembic==1.18.4
+# alembic==1.16.5
 annotated-doc==0.0.4
 annotated-types==0.7.0
-anyio==4.13.0
-click==8.4.1
+# anyio==4.13.0
+# click==8.4.1
 fastapi==0.136.3
 h11==0.16.0
 idna==3.18
@@ -23,3 +23,4 @@ passlib==1.7.4
 python-jose[cryptography]==3.3.0
 redis==5.0.1
 bcrypt==3.2.2
+aiokafka==0.10.0

@@ -41,4 +41,3 @@ app.include_router(analytics_router)
 async def root():
     return {"message": "Aegis API is running"}
 
-

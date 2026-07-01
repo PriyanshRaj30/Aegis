@@ -21,6 +21,27 @@ class Settings(BaseSettings):
     TOKEN_BUCKET_CAPACITY: int
     TOKEN_BUCKET_REFILL_RATE: float
 
+    COOLDOWN_DURATION_SECONDS: int
+    
+    # Reputation Engine Settings
+    RISK_DECAY_RATE: float = 0.95  # 5% decay per minute
+    
+    # Graduated Throttling Thresholds
+    RISK_LIGHT_THROTTLE_THRESHOLD: int
+    RISK_HEAVY_THROTTLE_THRESHOLD: int
+    RISK_BAN_THRESHOLD: int
+    
+    # Signal Weights
+    WEIGHT_RATE_LIMIT_SLIDING: float
+    WEIGHT_RATE_LIMIT_TOKEN: float
+    WEIGHT_BURST_DETECTED: float
+    WEIGHT_INVALID_API_KEY: float
+    WEIGHT_STATUS_401: float
+    WEIGHT_STATUS_403: float
+    WEIGHT_STATUS_404: float
+
+
+
     class Config:
         env_file = str(ENV_FILE)
 
