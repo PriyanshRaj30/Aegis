@@ -24,3 +24,4 @@ python-jose[cryptography]==3.3.0
 redis==5.0.1
 bcrypt==3.2.2
 aiokafka==0.10.0
+prometheus-client==0.20.0
